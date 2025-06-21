@@ -3,3 +3,7 @@ __pycache__/
 backend/data/horoscopes/
 # frontend
 frontend/node_modules/
+# uv virtual environment
+.venv/
+# environment variables
+.env
