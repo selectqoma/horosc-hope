@@ -104,20 +104,44 @@ def calculate_ascendant_midheaven_swe(birth_date: str, birth_time: str, latitude
 def calculate_birth_chart(birth_date: str, birth_time: str, latitude: float, longitude: float) -> Dict:
     """
     Calculate birth chart for given birth data.
-    Uses ephem for planets, Swiss Ephemeris for Ascendant/MC.
+    Uses ephem for planets, Swiss Ephemeris for Ascendant/MC and houses.
     """
     try:
         # Parse date and time
         datetime_str = f"{birth_date} {birth_time}"
         birth_datetime = datetime.strptime(datetime_str, "%Y-%m-%d %H:%M")
         
-        # Create observer (birth location)
+        # Get Julian Day for Swiss Ephemeris
+        jd = get_julian_day(birth_date, birth_time)
+        
+        # Calculate house cusps using Placidus system
+        cusps, ascmc = swe.houses(jd, latitude, longitude, b'P')
+
+        # Function to find which house a planet is in
+        def get_planet_house(planet_degrees: float) -> int:
+            """Determines the house placement of a celestial body."""
+            # Normalize degrees to be within the 0-360 range
+            planet_degrees = planet_degrees % 360
+            cusps_12 = list(cusps[:12])
+            for i in range(12):
+                start_cusp = cusps_12[i]
+                end_cusp = cusps_12[(i + 1) % 12]
+                # Handles the wrap-around from the 12th to the 1st house (e.g., 330° to 20°)
+                if start_cusp > end_cusp:
+                    if planet_degrees >= start_cusp or planet_degrees < end_cusp:
+                        return i + 1
+                # Standard case
+                elif start_cusp <= planet_degrees < end_cusp:
+                    return i + 1
+            return 12 # Default to 12th house if no match is found
+
+        # Create observer (birth location) for ephem
         observer = ephem.Observer()
         observer.lat = str(latitude)
         observer.lon = str(longitude)
         observer.date = birth_datetime
         
-        # Calculate planetary positions (ephem)
+        # Calculate planetary positions
         planets_data = {}
         for planet_name in PLANETS.keys():
             try:
@@ -146,6 +170,8 @@ def calculate_birth_chart(birth_date: str, birth_time: str, latitude: float, lon
                 planet.compute(observer)
                 degrees = float(planet.hlong) * 180 / ephem.pi
                 sign_data = get_zodiac_sign(degrees)
+                house = get_planet_house(degrees)
+                
                 planets_data[planet_name] = {
                     'name': planet_name,
                     'symbol': PLANETS[planet_name],
@@ -153,14 +179,15 @@ def calculate_birth_chart(birth_date: str, birth_time: str, latitude: float, lon
                     'sign': sign_data['name'],
                     'sign_symbol': sign_data['symbol'],
                     'sign_degrees': sign_data['sign_degrees'],
-                    'formatted': format_degrees(degrees)
+                    'formatted': format_degrees(degrees),
+                    'house': house
                 }
             except Exception as e:
                 logger.warning(f"Failed to calculate {planet_name}: {e}")
                 continue
         
         # Use Swiss Ephemeris for Ascendant and MC
-        asc_degrees, mc_degrees = calculate_ascendant_midheaven_swe(birth_date, birth_time, latitude, longitude)
+        asc_degrees, mc_degrees = ascmc[0], ascmc[1]
         asc_sign_data = get_zodiac_sign(asc_degrees)
         ascendant = {
             'name': 'Ascendant',
@@ -181,6 +208,19 @@ def calculate_birth_chart(birth_date: str, birth_time: str, latitude: float, lon
             'sign_degrees': mc_sign_data['sign_degrees'],
             'formatted': format_degrees(mc_degrees)
         }
+        
+        # House cusps data
+        house_cusps_data = {}
+        for i, cusp_degrees in enumerate(cusps[:12]):
+            sign_data = get_zodiac_sign(cusp_degrees)
+            house_cusps_data[i+1] = {
+                'house': i + 1,
+                'degrees': cusp_degrees,
+                'sign': sign_data['name'],
+                'sign_symbol': sign_data['symbol'],
+                'formatted': format_degrees(cusp_degrees)
+            }
+
         return {
             'birth_data': {
                 'date': birth_date,
@@ -192,6 +232,7 @@ def calculate_birth_chart(birth_date: str, birth_time: str, latitude: float, lon
             'planets': planets_data,
             'ascendant': ascendant,
             'midheaven': midheaven,
+            'houses': house_cusps_data,
             'calculated_at': datetime.now().isoformat()
         }
     except Exception as e:

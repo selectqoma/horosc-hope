@@ -2,10 +2,10 @@ import os
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .routes.horoscope import router as horoscope_router
-from ..agents.scraper_agent.agent import run_scraper
+from backend.agents.scraper_agent.agent import run_scraper
+from backend.core.daily_data_manager import load_daily_horoscopes, save_daily_horoscopes, is_data_fresh, cleanup_old_data
+from backend.api.routes.horoscope import router as horoscope_router
 from .utils.caching import save_to_cache
-from ..core.daily_data_manager import load_daily_horoscopes, save_daily_horoscopes, is_data_fresh, cleanup_old_data
 import logging
 
 # Load environment variables from .env file

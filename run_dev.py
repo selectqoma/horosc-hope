@@ -8,16 +8,19 @@ import time
 import threading
 import signal
 import os
-from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+# Load environment variables if dotenv is available
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    print("Note: python-dotenv not installed, skipping .env file loading")
 
 def run_backend():
     """Run the backend server."""
     print("🚀 Starting backend server on http://localhost:8000")
     subprocess.run([
-        sys.executable, "-m", "uvicorn", 
+        "uv", "run", "uvicorn", 
         "backend.api.main:app", 
         "--reload", 
         "--host", "0.0.0.0", 
@@ -28,7 +31,7 @@ def run_frontend():
     """Run the frontend server."""
     print("🎨 Starting frontend server on http://localhost:3000")
     subprocess.run([
-        sys.executable, "-m", "http.server", 
+        "uv", "run", "python", "-m", "http.server", 
         "3000", 
         "-d", "frontend"
     ])
