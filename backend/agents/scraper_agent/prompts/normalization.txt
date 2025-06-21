@@ -1,0 +1,3 @@
+# Examples for normalization
+# Input: "<p>Hello\nWorld</p>"
+# Output: "Hello World"
