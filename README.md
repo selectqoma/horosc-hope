@@ -16,3 +16,13 @@ Backend project providing roasted horoscope data.
    ```bash
    uvicorn backend.api.main:app --reload
    ```
+
+## Frontend
+
+A minimal React-based frontend is available in the `frontend/` directory. It uses CDN versions of React so no build step is required. Run a simple HTTP server to view it locally:
+
+```bash
+python -m http.server 3000 -d frontend
+```
+
+Open `http://localhost:3000` in your browser while the backend API is running on `http://localhost:8000`.
